@@ -1,2 +1,3 @@
-# faunistica_2.0
-`Faunistica 2.0` software for species occurrences data entry
+# Spider search engine for DarwinCore tables/databases
+
+in progres...
