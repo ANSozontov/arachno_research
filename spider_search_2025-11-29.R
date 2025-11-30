@@ -14,7 +14,8 @@ cc <- function(){
     )
 }
 adm_dict <- readxl::read_excel("adm_list_2025-03-17.xlsx")
-tax_list <- readxl::read_excel("wsc_list_2025-08-08.xlsx")
+tax_list <- readxl::read_excel("wsc_list_2025-08-08.xlsx") %>% 
+    mutate (scientificname = paste0(genus, " ", species), .before = 6)
 # tax_dict
 vcenter <- "/* Center the numeric input container vertically */
       .center-numeric {
@@ -53,7 +54,7 @@ server <- function(input, output, session) {
     output$box_fam <- renderUI({
         selectInput(
             "sql_fam", 
-            label = "Семейство", 
+            label = NULL, 
             choices = c("", unique(tax_list$family)),
             # selected = NULL,
             # multiple = TRUE,
@@ -61,11 +62,44 @@ server <- function(input, output, session) {
             )
     })
     
-    output$box_spec <- renderUI({
+    # output$box_gen <- renderUI({
+    #     selectInput(
+    #         "sql_gen", 
+    #         label = "Род", 
+    #         choices = c("", unique(tax_list$genus)),
+    #         # selected = NULL,
+    #         # multiple = TRUE,
+    #         selectize = TRUE
+    #     )
+    # })
+ 
+    # output$box_spec <- renderUI({
+    #     selectInput(
+    #         "sql_sp", 
+    #         label = "Вид", 
+    #         choices = c("", unique(tax_list$species)),
+    #         # selected = NULL,
+    #         # multiple = TRUE,
+    #         selectize = TRUE
+    #     )
+    # })
+    
+    output$box_scname <- renderUI({
         selectInput(
-            "sql_fam", 
-            label = "Семейство", 
-            choices = c("", unique(tax_list$family)),
+            "sql_sp",
+            label = NULL,
+            choices = c("", unique(tax_list$scientificname)),
+            # selected = NULL,
+            # multiple = TRUE,
+            selectize = TRUE
+        )
+    })
+    
+    output$box_region <- renderUI({
+        selectInput(
+            "sql_province", 
+            label = NULL, 
+            choices = c("", unique(adm_dict$region), unique(adm_dict$en_region)),
             # selected = NULL,
             # multiple = TRUE,
             selectize = TRUE
@@ -143,10 +177,10 @@ server <- function(input, output, session) {
             }
             
             # species
-            if (!is.null(input$sql_sp) && 
-                !is.na(input$sql_sp) && 
+            if (!is.null(input$sql_sp) &&
+                !is.na(input$sql_sp) &&
                 nchar(str_squish(input$sql_sp)) > 1) {
-                sp_query <- paste0("specificepithet ILIKE '%",str_squish(input$sql_sp),"%'" )
+                sp_query <- paste0("\"scientificName\" ILIKE '%",str_squish(input$sql_sp),"%'" )
             } else {
                 sp_query <- " "
             }}
@@ -167,12 +201,12 @@ server <- function(input, output, session) {
                     if(is.null(input$sql_lat2) || is.na(input$sql_lat2)){
                         lat_query <- " "
                     } else {
-                        lat_query <- paste0(" decimallatitude <= ", input$sql_lat2) 
+                        lat_query <- paste0(" \"decimalLatitude\" <= ", input$sql_lat2) 
                     }
                 } else if(is.null(input$sql_lat2) || is.na(input$sql_lat2)){
-                    lat_query <- paste0(" decimallatitude >= ", input$sql_lat1)   
+                    lat_query <- paste0(" \"decimalLatitude\" >= ", input$sql_lat1)   
                 } else {
-                    lat_query <- paste0(" decimallatitude BETWEEN ", min(c(input$sql_lat1, input$sql_lat2)), 
+                    lat_query <- paste0(" \"decimalLatitude\" BETWEEN ", min(c(input$sql_lat1, input$sql_lat2)), 
                                         " AND ",  max(c(input$sql_lat1, input$sql_lat2)))
                 } 
                 
@@ -182,12 +216,12 @@ server <- function(input, output, session) {
                     if(is.null(input$lon2) || is.na(input$lon2)){
                         lon_query <- " "
                     } else {
-                        lon_query <- paste0(" decimallongitude <= ", input$lon2) 
+                        lon_query <- paste0(" \"decimalLongitude\" <= ", input$lon2) 
                     }
                 } else if(is.null(input$lon2) || is.na(input$lon2)){
-                    lon_query <- paste0(" decimallongitude >= ", input$lon1)   
+                    lon_query <- paste0(" \"decimalLongitude\" >= ", input$lon1)   
                 } else {
-                    lon_query <- paste0(" decimallongitude BETWEEN ", min(c(input$lon1, input$lon2)), 
+                    lon_query <- paste0(" \"decimalLongitude\" BETWEEN ", min(c(input$lon1, input$lon2)), 
                                         " AND ",  max(c(input$lon1, input$lon2)))
                 }
             } else {
@@ -244,10 +278,10 @@ server <- function(input, output, session) {
                 if (input$sql_juv == TRUE) {
                     lifestage_query <- " "
                 } else {
-                    lifestage_query <- "lifestage ilike '%ad%'"
+                    lifestage_query <- "\"lifeStage\" ilike '%ad%'"
                 }
             } else if(input$sql_juv == TRUE){
-                lifestage_query <- "lifestage ilike '%juv%'"  
+                lifestage_query <- "\"lifeStage\" ilike '%juv%'"  
             } else { 
                 lifestage_query <- " "
             }
@@ -269,7 +303,9 @@ server <- function(input, output, session) {
         showNotification(values$last_query, duration = 10, type = "message")
         
         con <- cc()
-        values$last_table <- dbGetQuery(con, values$last_query)
+        # r2 <- dbGetQuery(con, "SELECT * FROM spiders_test;")  %>% rename_with(tolower) %>% as_tibble() %>% select (scientificname)
+        values$last_table <- dbGetQuery(con, values$last_query) %>% 
+            rename_with(tolower)
         # result <- dbGetQuery(con, values$last_query) # %>% as_tibble()
         dbDisconnect(con)
         
@@ -431,11 +467,19 @@ ui <- fluidPage(
             width = 3,
             # h2("Условия поиска"),
             # br(),
+            HTML("<h4 style='text-align: left;'>Семейство</h4>"),
             uiOutput("box_fam"),
+            # uiOutput("box_gen"),
+            # uiOutput("box_spec"), 
+            HTML("<h4 style='text-align: left;'>Вид (род + видовой эпитет)</h4>"),
+            uiOutput("box_scname"),
+            div(
+                style = "text-align: right; font-size: 10px; font-style: italic;", 
+                "*указать актуальное название, синонимия не учтена"
+            ),
             # textInput(inputId = "sql_fam", label = "Семейство"),
             # textInput(inputId = "sql_gen", label = "Род"),
-            textInput(inputId = "sql_sp", label = "Вид", 
-                      placeholder = "Актуальное название. Синонимия не учтена"),
+            #textInput(inputId = "sql_sp", label = "Вид", placeholder = "Актуальное название. Синонимия не учтена"),
             br(),
             fluidRow(
                 column(6, actionButton(
@@ -481,7 +525,8 @@ ui <- fluidPage(
             uiOutput("coords_filter"),
             # br(),
             h4("Регион"),
-            textInput(inputId = "sql_province", label = NULL),
+            uiOutput("box_region"), 
+            #textInput(inputId = "sql_province", label = NULL),
             # br(),
             fluidRow(
                column(6,
