@@ -1,0 +1,20 @@
+No	file	name
+1	wc2.1_bio_01.tif	BIO1 = Annual Mean Temperature
+2	wc2.1_bio_02.tif	BIO2 = Mean Diurnal Range (Mean of monthly (max temp - min temp))
+3	wc2.1_bio_03.tif	BIO3 = Isothermality (BIO2/BIO7) (×100)
+4	wc2.1_bio_04.tif	BIO4 = Temperature Seasonality (standard deviation ×100)
+5	wc2.1_bio_05.tif	BIO5 = Max Temperature of Warmest Month
+6	wc2.1_bio_06.tif	BIO6 = Min Temperature of Coldest Month
+7	wc2.1_bio_07.tif	BIO7 = Temperature Annual Range (BIO5-BIO6)
+8	wc2.1_bio_08.tif	BIO8 = Mean Temperature of Wettest Quarter
+9	wc2.1_bio_09.tif	BIO9 = Mean Temperature of Driest Quarter
+10	wc2.1_bio_10.tif	BIO10 = Mean Temperature of Warmest Quarter
+11	wc2.1_bio_11.tif	BIO11 = Mean Temperature of Coldest Quarter
+12	wc2.1_bio_12.tif	BIO12 = Annual Precipitation
+13	wc2.1_bio_13.tif	BIO13 = Precipitation of Wettest Month
+14	wc2.1_bio_14.tif	BIO14 = Precipitation of Driest Month
+15	wc2.1_bio_15.tif	BIO15 = Precipitation Seasonality (Coefficient of Variation)
+16	wc2.1_bio_16.tif	BIO16 = Precipitation of Wettest Quarter
+17	wc2.1_bio_17.tif	BIO17 = Precipitation of Driest Quarter
+18	wc2.1_bio_18.tif	BIO18 = Precipitation of Warmest Quarter
+19	wc2.1_bio_19.tif	BIO19 = Precipitation of Coldest Quarter
