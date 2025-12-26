@@ -25,29 +25,49 @@ cc <- function(){
 }
 
 adm_dict <- readxl::read_excel("srv/adm_list_2025-03-17.xlsx")
-tax_list <- readxl::read_excel("srv/wsc_list_2025-08-08.xlsx") %>% 
-    mutate (scientificname = paste0(genus, " ", species), .before = 6)
-
 
 # taxa values
-{
+if(file.exists(paste0("srv/tax_names_", Sys.Date(), ".RData"))){
+    load(paste0("srv/tax_names_", Sys.Date(), ".RData"))
+} else {
+    tax_names <- list()
     con <- cc()
-    tax_names <- dbGetQuery(con, "SELECT DISTINCT(scientificname)  FROM spiders where taxonrank ilike '%species%';") %>% 
+    tax_names$fam <- dbGetQuery(con, 
+               "SELECT 
+               DISTINCT(family) 
+               FROM spiders 
+               WHERE 
+                   family IS NOT NULL AND
+                   (taxonrank ILIKE '%species%' 
+                   or taxonrank ILIKE '%genus%')
+               ORDER BY family;") %>% 
+        pull(1)
+    tax_names$spc <- dbGetQuery(con, 
+               "SELECT 
+               DISTINCT(scientificname) 
+               FROM spiders
+               WHERE taxonrank ILIKE '%species%';") %>% 
         as_tibble() %>% 
         separate(1, into = c("g", "s"), sep = " ", extra = "drop") %>% 
         transmute(sp = paste0(g, " ", s)) %>% 
         pull(1) %>% 
         unique() %>% 
         sort()
+    tax_names$gen <- dbGetQuery(con, 
+               "SELECT 
+               DISTINCT(genus) 
+               FROM spiders 
+               WHERE 
+                   taxonrank ILIKE '%species%' 
+                   or taxonrank ILIKE '%genus%'
+               ORDER BY genus;") %>% 
+        # as_tibble() %>% 
+        # separate(1, into = c("g", "s"), sep = " ", extra = "drop") %>% 
+        # transmute(sp = paste0(g, " ", s)) %>% 
+        pull(1)
+    tax_names$tax <- sort(c(tax_names$gen, tax_names$spc))
     dbDisconnect(con)
-        
-        
-        # tax_gen.names <- c(tax_names, pull(dbGetQuery(con, "select distinct(genus) from spiders;"), 1))
-        
-        # tax_names <- dbGetQuery(con, "SELECT DISTINCT taxonrank, verbatimidentification, genus, scientificname  FROM spiders;")
-        # pull(1) 
-        # c(tax_names, )
-    # tax_names <- c(tax_names, pull(dbGetQuery(con, "select distinct() from spiders;"), 1))
+    save(list = "tax_names", file = paste0("srv/tax_names_", Sys.Date(), ".RData"))
 }
 
 # tax_dict
@@ -89,13 +109,13 @@ server <- function(input, output, session) {
         selectInput(
             "sql_fam", 
             label = NULL, 
-            choices = c("", unique(tax_list$family)),
             multiple = TRUE,
+            choices = c("", unique(tax_names$fam))
             )
     })
     
     observeEvent(input$sql_sp, {  
-        updateSelectizeInput(session, 'sql_sp', choices = c("", tax_names), server = TRUE)
+        updateSelectizeInput(session, 'sql_sp', choices = c("", tax_names$tax), server = TRUE)
     }, once = TRUE)
     
     # new way species
@@ -154,7 +174,6 @@ server <- function(input, output, session) {
         })
 
     observeEvent(input$search_run, {
-        # browser()
         conditions <- character()
         
         # year
@@ -191,31 +210,38 @@ server <- function(input, output, session) {
                 } else {
                     fam_query <- input$sql_fam %>% 
                         paste0(collapse = "%' OR family ILIKE '%") %>% 
-                        paste0("family ILIKE '%", ., "%'" )
+                        paste0("(family ILIKE '%", ., "%')" )
                 }
             } else {
                 fam_query <- " "
             }
             
-            # genus
-            if (!is.null(input$sql_gen) && 
-                !is.na(input$sql_gen) && 
-                nchar(str_squish(input$sql_gen)) > 1) {
-                gen_query <- paste0("genus ILIKE '%",str_squish(input$sql_gen),"%'" )
-            } else {
-                gen_query <- " "
-            }
-            
             # species
-            if (!is.null(input$sql_sp) &&
-                !is.na(input$sql_sp) &&
-                nchar(str_squish(input$sql_sp)) > 1) {
-                sp_query <- paste0("scientificname ILIKE '%", str_squish(input$sql_sp),"%'" )
+            if (!is.null(input$sql_sp) && !is.na(input$sql_sp) && input$sql_sp != "") {
+                # browser()
+                sql_sp <- str_squish(input$sql_sp)
+                tax_length <- length(sql_sp)
+                tax_words <- mean(str_count(sql_sp, " ") + 1)
+                if(tax_length == 1 & tax_words == 1){
+                    # 1 genus
+                    sp_query <- paste0("genus LIKE '%", str_squish(input$sql_sp),"%'" )
+                } else if(tax_length == 1 & tax_words > 1){
+                    # 1 species
+                    sp_query <- paste0("scientificname ILIKE '%", str_squish(input$sql_sp),"%'" )
+                } else if(tax_length > 1 & tax_words == 1){
+                    # 2+ genera
+                } else if(tax_length > 1 & tax_words == 2){
+                    # 2+ species
+                } else if(tax_length > 1 & tax_words < 2 & tax_words > 1){
+                    # mix of genera and species
+                } else {
+                    # unknown error
+                }
+                rm(tax_length, tax_words, sql_sp)
             } else {
                 sp_query <- " "
             }}
         conditions <- c(conditions, fam_query)
-        conditions <- c(conditions, gen_query)
         conditions <- c(conditions, sp_query)
         
         # COORDS
@@ -427,28 +453,32 @@ server <- function(input, output, session) {
                     ) %>% 
                     separate(author, c("a1", "a2", "a3"), sep = ", ", extra = "drop", fill = "right") %>% 
                     mutate(
-                        author = case_when(
+                        `📖` = case_when(
                             is.na(a2) ~ paste0(str_squish(a1), ", ", y),
                             is.na(a3) ~ paste0(str_squish(a1), ", ", str_squish(a2), ", ", y),
                             TRUE ~ paste0(str_squish(a1), " et al., ", y)
                         ), 
+                        # sex = str_replace_all(sex, "females|female", "♀♀"),
+                        # sex = str_replace_all(sex, "female", "♀"),
+                        # sex = str_replace_all(sex, "males", "♂♂"),
+                        # sex = str_replace_all(sex, "male", "♂"),
+                        # sex = str_replace_all(sex, "[:space:]+", ""),
                         .keep = "unused"
                     ) %>% 
                     transmute(
-                        article = case_when(
-                            is.na(references) ~ author,
-                            TRUE ~ paste0(
-                                '<a href="',
-                                references, '" target="_blank">',
-                                author,
-                                '</a>')
-                        ),
-                        Пол = sex,
+                        article = paste0(
+                            '<a href="',
+                            references, 
+                            '" target="_blank">',
+                            shortlink,
+                            '</a>'),
+                        `⚤` = sex,
+                        
                         Возраст = lifestage,
-                        Страна = countrycode, # country
+                        `🌐` = countrycode, # country
                         Регион = stateprovince,
                         Место = locality,
-                        `N & E` = case_when(
+                        `🧭` = case_when(
                             !is.na(decimallatitude) & !is.na(decimallongitude) ~ 
                                 paste0(round(decimallatitude,  1), "N, ", round(decimallongitude, 1), "E"),
                             TRUE ~ "–"
@@ -456,7 +486,7 @@ server <- function(input, output, session) {
                         Дата = eventdate,
                         Биотоп = habitat,
                         Семейство = family, # 
-                        Вид = scientificname
+                        Вид = paste0("<i>", scientificname, "</i>")
                         # rank = substr(taxonrank, 1, 3)
                     )
             }, escape = FALSE)
@@ -515,7 +545,6 @@ server <- function(input, output, session) {
     )}
     
     observeEvent(input$drop_env, {
-        # browser()
         if(any(input$st_srtm_elev, input$st_hfp, input$st_wc_temprature, input$st_wc_humidity, input$st_landcover)){
             updateCheckboxInput(session, "st_srtm_elev", value = FALSE)
             updateCheckboxInput(session, "st_hfp", value = FALSE)
@@ -601,8 +630,6 @@ server <- function(input, output, session) {
                     select(starts_with("decimal")) %>% 
                     distinct() %>%
                     filter(!is.na(decimallongitude), !is.na(decimallatitude)) 
-                
-                # browser()
                 rst_tmp <- rst[[layers_to_extract]]
                 extracted_data <- terra::extract(
                     rst_tmp, 
@@ -676,7 +703,6 @@ server <- function(input, output, session) {
     
 }
 
-
 # UI ----------------------------------------------------------------------
 ui <- fluidPage( 
     shinyjs::useShinyjs(),
@@ -703,22 +729,6 @@ ui <- fluidPage(
     sidebarLayout(
         sidebarPanel(
             width = 3,
-            # h2("Условия поиска"),
-            # br(),
-            HTML("<h4 style='text-align: left;'>Семейство</h4>"),
-            uiOutput("box_fam"),
-            # uiOutput("box_gen"),
-            # uiOutput("box_spec"), 
-            HTML("<h4 style='text-align: left;'>Вид (род + видовой эпитет)</h4>"),
-            uiOutput("box_scname"),
-            div(
-                style = "text-align: right; font-size: 10px; font-style: italic;", 
-                "*указать актуальное название, синонимия не учтена"
-            ),
-            # textInput(inputId = "sql_fam", label = "Семейство"),
-            # textInput(inputId = "sql_gen", label = "Род"),
-            #textInput(inputId = "sql_sp", label = "Вид", placeholder = "Актуальное название. Синонимия не учтена"),
-            br(),
             fluidRow(
                 column(6, actionButton(
                     inputId = "search_run", 
@@ -732,6 +742,23 @@ ui <- fluidPage(
                     width = "100%")
                 )
             ),
+            # h2("Условия поиска"),
+            # br(),
+            HTML("<h4 style='text-align: left;'>Семейство</h4>"),
+            uiOutput("box_fam"),
+            # uiOutput("box_gen"),
+            # uiOutput("box_spec"), 
+            HTML("<h4 style='text-align: left;'>Род или вид</h4>"),
+            uiOutput("box_scname"),
+            div(
+                style = "text-align: right; font-size: 10px; font-style: italic;", 
+                "*указать актуальное название, синонимия не учтена"
+            ),
+            # textInput(inputId = "sql_fam", label = "Семейство"),
+            # textInput(inputId = "sql_gen", label = "Род"),
+            #textInput(inputId = "sql_sp", label = "Вид", placeholder = "Актуальное название. Синонимия не учтена"),
+            br(),
+            
             uiOutput("download_block"),
             hr(),
             # br(),
@@ -814,7 +841,7 @@ ui <- fluidPage(
                         hr(), 
                     ),
                     tagList(
-                        checkboxInput("st_wc_humidity", "WorldClim v. 2.1, влажность"),
+                        checkboxInput("st_wc_humidity", "WorldClim v. 2.1, осадки"),
                         br(),
                         br(),
                         HTML("<a href = 'https://rmets.onlinelibrary.wiley.com/doi/abs/10.1002/joc.5086' target = '_blank'>Fick & Hijmans (2017)</a>"),
@@ -846,7 +873,7 @@ ui <- fluidPage(
                             "download_env", 
                             "Получить", 
                             width = "100%",
-                            style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+                            style = "width:100%; background-color: #ADFF2F; border-color: #006400"
                         )
                     )
                 )
@@ -872,26 +899,3 @@ shinyApp(ui = ui,
          }, 
          options = list(port = 3333, host = "0.0.0.0", launch.browser = F)
 )
-
-
-# output$box_gen <- renderUI({
-#     selectInput(
-#         "sql_gen", 
-#         label = "Род", 
-#         choices = c("", unique(tax_list$genus)),
-#         # selected = NULL,
-#         # multiple = TRUE,
-#         selectize = TRUE
-#     )
-# })
-
-# output$box_spec <- renderUI({
-#     selectInput(
-#         "sql_sp", 
-#         label = "Вид", 
-#         choices = c("", unique(tax_list$species)),
-#         # selected = NULL,
-#         # multiple = TRUE,
-#         selectize = TRUE
-#     )
-# })
