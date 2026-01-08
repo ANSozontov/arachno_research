@@ -1,5 +1,5 @@
 CREATE TABLE spiders (
-    record VARCHAR(6) DEFAULT 'RECORD',
+    "RECORD" VARCHAR(6) DEFAULT 'RECORD', --UPD
     id TEXT,
     type VARCHAR(15) NOT NULL,
     modified VARCHAR(15),
@@ -15,7 +15,7 @@ CREATE TABLE spiders (
     datasetname TEXT,
     basisofrecord VARCHAR(20) NOT NULL,
     dynamicproperties TEXT,
-    occurrence VARCHAR(10) DEFAULT 'OCCURRENCE',
+    "OCCURRENCE" VARCHAR(10) DEFAULT 'OCCURRENCE', --UPD
     occurrencestatus VARCHAR(15) NOT NULL,
     disposition VARCHAR(20),
     occurrenceid TEXT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE spiders (
     associatedtaxa TEXT,
     establishmentmeans VARCHAR(35),
     occurrenceremarks TEXT,
-    event VARCHAR(5) DEFAULT 'EVENT',
+    "EVENT" VARCHAR(5) DEFAULT 'EVENT', --UPD
     eventid VARCHAR(100),
     parenteventid VARCHAR(100),
     fieldnumber VARCHAR(100),
@@ -47,7 +47,7 @@ CREATE TABLE spiders (
     samplesizevalue REAL,
     samplesizeunit VARCHAR(100),
     eventremarks TEXT,
-    location VARCHAR(10) DEFAULT 'LOCATION',
+    "LOCATION" VARCHAR(10) DEFAULT 'LOCATION', --UPD
     locationid VARCHAR(100),
     highergeography VARCHAR(100),
     continent VARCHAR(30),
@@ -69,18 +69,18 @@ CREATE TABLE spiders (
     georeferencedby VARCHAR(200),
     georeferenceddate VARCHAR(10),
     locationremarks TEXT,
-    identification VARCHAR(15) DEFAULT 'IDENTIFICATION',
+    "IDENTIFICATION" VARCHAR(15) DEFAULT 'IDENTIFICATION', --UPD
     identifiedby VARCHAR(200),
     dateidentified VARCHAR(10),
     verbatimidentification VARCHAR(100),
     identificationremarks TEXT,
-    taxon VARCHAR(5) DEFAULT 'TAXON',
+    "TAXON" VARCHAR(5) DEFAULT 'TAXON', --UPD
     taxonrank VARCHAR(10),
     scientificname VARCHAR(100) NOT NULL,
     kingdom VARCHAR(10) DEFAULT 'Animalia',
     phylum VARCHAR(10) DEFAULT 'Arthropoda',
     class VARCHAR(10) DEFAULT 'Arachnida',
-    "ORDER" VARCHAR(10),
+    "order" VARCHAR(10),
     family VARCHAR(30),
     genus VARCHAR(30),
     specificepithet VARCHAR(50),
@@ -89,7 +89,7 @@ CREATE TABLE spiders (
     acceptednameusage VARCHAR(100),
     type_status VARCHAR(30),
     taxonRemarks TEXT,
-    remove VARCHAR(6) DEFAULT 'REMOVE',
+    "REMOVE" VARCHAR(6) DEFAULT 'REMOVE', --UPD
     publ_id INT NOT NULL,
     vol_ids TEXT,
     shortlink varchar(30) NOT NULL
