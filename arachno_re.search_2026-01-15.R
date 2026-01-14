@@ -458,11 +458,11 @@ server <- function(input, output, session) {
                             is.na(a3) ~ paste0(str_squish(a1), ", ", str_squish(a2), ", ", y),
                             TRUE ~ paste0(str_squish(a1), " et al., ", y)
                         ), 
-                        # sex = str_replace_all(sex, "females|female", "♀♀"),
-                        # sex = str_replace_all(sex, "female", "♀"),
-                        # sex = str_replace_all(sex, "males", "♂♂"),
-                        # sex = str_replace_all(sex, "male", "♂"),
-                        # sex = str_replace_all(sex, "[:space:]+", ""),
+                        sex = str_replace_all(sex, "females|female", "♀♀"),
+                        sex = str_replace_all(sex, "female", "♀"),
+                        sex = str_replace_all(sex, "males", "♂♂"),
+                        sex = str_replace_all(sex, "male", "♂"),
+                        sex = str_replace_all(sex, "[:space:]+", ""),
                         .keep = "unused"
                     ) %>% 
                     transmute(
