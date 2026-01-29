@@ -376,23 +376,34 @@ server <- function(input, output, session) {
         
         #for map
         for.map.result <- values$last_table %>%
-            filter(!is.na(decimallatitude), !is.na(decimallongitude)) 
+            filter(!is.na(decimallatitude), !is.na(decimallongitude)) %>%
+            mutate(
+                article = paste0(
+                    '<a href="', references, '" target="_blank">',
+                    shortlink, '</a>'
+                )
+            ) %>%
+            select(decimallongitude, decimallatitude, article, occurrenceid) 
         
-        if(nrow(for.map.result) > 0){
-            output$results_map <- for.map.result %>% 
-                arrange(occurrenceid) %>% 
-                group_by(decimallongitude, decimallatitude) %>% 
+        if (nrow(for.map.result) > 0) {
+            output$results_map <- for.map.result %>%
+                arrange(occurrenceid) %>%
+                group_by(decimallongitude, decimallatitude) %>%
                 summarise(
-                    N = paste0("находок: ", n()),
-                    occurrenceid = paste0(occurrenceid, collapse = ", "),
+                    N = paste0("Находок: ", n()),
+                    occurrenceid = paste0(occurrenceid, collapse = "; "),
+                    link =  paste0(unique(article), collapse = "; "),  
                     .groups = "drop") %>% 
-                st_as_sf(coords = c("decimallongitude", "decimallatitude"), crs = 4326) %>% 
-                leaflet() %>% 
-                addTiles() %>% 
+                st_as_sf(coords = c("decimallongitude", "decimallatitude"), crs = 4326) %>%
+                leaflet() %>%
+                addTiles() %>%
                 addCircleMarkers(
                     label = ~N,
-                    popup = ~ occurrenceid
-                ) %>% 
+                    popup = ~paste0("<i>Источники: </i>", 
+                                    link, 
+                                    "<br><i>Находки: </i> ",
+                                    occurrenceid) 
+                ) %>%
                 renderLeaflet()
         } else {
             output$results_map <- leaflet() %>% addTiles() %>% renderLeaflet()
