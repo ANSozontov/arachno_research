@@ -92,5 +92,7 @@ CREATE TABLE spiders (
     "REMOVE" VARCHAR(6) DEFAULT 'REMOVE', --UPD
     publ_id INT NOT NULL,
     vol_ids TEXT,
-    shortlink varchar(30) NOT NULL
+    shortlink varchar(30) NOT NULL, 
+    year1 INT NOT NULL, 
+    year2 INT NOT NULL
 );
