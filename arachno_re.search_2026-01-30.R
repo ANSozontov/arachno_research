@@ -177,27 +177,51 @@ server <- function(input, output, session) {
         conditions <- character()
         
         # year
-        {if(is.null(input$sql_year1) || is.na(input$sql_year1)){
-            if(is.null(input$sql_year2) || is.na(input$sql_year2)){
-                year_query <- " "
+        {
+        if(is.null(input$sql_year1) || is.na(input$sql_year1) || input$sql_year1 == 1770){
+                year1_query <- ""
             } else {
-                year_query <- paste0(" year <= ", input$sql_year2) 
+                year1_query <- input$sql_year1
             }
-        } else if(is.null(input$sql_year2) || is.na(input$sql_year2)){
-            year_query <- paste0(" year >= ", input$sql_year1)   
-        } else {
-            if(input$sql_year1 == 1770 && input$sql_year2 == 2025) {
-                year_query <- " "
-            } else if(input$sql_year1 == 1770){
-                year_query <- paste0(" year <= ", input$sql_year2) 
-            } else if(input$sql_year2 == 2025){
-                year_query <- paste0(" year >= ", input$sql_year1)
+        if(is.null(input$sql_year2) || is.na(input$sql_year2) || input$sql_year2 == 2026){
+                year2_query <- ""
             } else {
-                year_query <- paste0(" year BETWEEN ", min(c(input$sql_year1, input$sql_year2)), 
-                                     " AND ",  max(c(input$sql_year1, input$sql_year2)))    
+                year2_query <- input$sql_year2
             }
             
-        } }
+        if(year1_query == "" & year2_query == ""){
+            # we don't need year querry
+            year_query <- " "
+        } else if(year2_query == "") {
+            # left limit only
+            year_query <- paste0(" year2 >= ", year1_query)
+        } else if(year1_query == "") {
+            # right limit only
+            year_query <- paste0(" year1 <= ", year2_query)
+        } else {
+            # 2 limits
+            year_query <- paste0(" (year1 <= ", year2_query, " OR year2 >= ", year1_query, ") ")
+        }
+        #     # if(is.null(input$sql_year2) || is.na(input$sql_year2)){
+        #         year_query <- " "
+        #     } else {
+        #         year_query <- paste0(" year <= ", input$sql_year2) 
+        #     }
+        # } else if(is.null(input$sql_year2) || is.na(input$sql_year2)){
+        #     year_query <- paste0(" year >= ", input$sql_year1)   
+        # } else {
+        #     if(input$sql_year1 == 1770 && input$sql_year2 == 2025) {
+        #         year_query <- " "
+        #     } else if(input$sql_year1 == 1770){
+        #         year_query <- paste0(" year <= ", input$sql_year2) 
+        #     } else if(input$sql_year2 == 2025){
+        #         year_query <- paste0(" year >= ", input$sql_year1)
+        #     } else {
+        #         year_query <- paste0(" year BETWEEN ", min(c(input$sql_year1, input$sql_year2)), 
+        #                              " AND ",  max(c(input$sql_year1, input$sql_year2)))    
+        #     }
+        rm(year1_query, year2_query)
+        } 
         conditions <- c(conditions, year_query)
         
         # TAXA
