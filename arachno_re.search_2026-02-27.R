@@ -111,7 +111,7 @@ server <- function(input, output, session) {
             label = NULL, 
             multiple = TRUE,
             choices = c("", unique(tax_names$fam))
-        )
+            )
     })
     
     observeEvent(input$sql_sp, {  
@@ -129,41 +129,7 @@ server <- function(input, output, session) {
             # selectize = TRUE
         )
     })
-    # output$box_fam <- renderUI({
-    #     selectInput(
-    #         "sql_fam", 
-    #         label = NULL, 
-    #         multiple = TRUE,
-    #         choices = unique(tax_names$fam)
-    #     )
-    # })
-    # 
-    # observeEvent(input$sql_fam, {  
-    #     if (!is.null(input$sql_fam) && length(input$sql_fam) > 0) {
-    #         requested_fam <- input$sql_fam
-    #         con <- cc()
-    #         unique_sp <- dbGetQuery(con, 
-    #                                 sprintf("SELECT DISTINCT scientificname FROM spiders WHERE family IN ('%s')", 
-    #                                         paste(requested_fam, collapse = "','"))) %>% 
-    #             pull(1)
-    #         updateSelectizeInput(session, 'sql_sp', choices =  unique_sp, server = TRUE)
-    #         dbDisconnect(con)
-    #     } else {
-    #         updateSelectizeInput(session, 'sql_sp', choices = tax_names$spc, server = TRUE)
-    #     }
-    # }, ignoreNULL = FALSE) 
-    # 
-    # # new way species
-    # output$box_scname <- renderUI({
-    #     selectizeInput(
-    #         "sql_sp",
-    #         label = NULL,
-    #         choices = NULL,
-    #         # selected = NULL,
-    #         multiple = TRUE
-    #         # selectize = TRUE
-    #     )
-    # })
+    
     output$box_region <- renderUI({
         selectInput(
             "sql_province", 
@@ -212,12 +178,12 @@ server <- function(input, output, session) {
         
         # year
         {
-        if(is.null(input$sql_year1) || is.na(input$sql_year1) || input$sql_year1 <= 1770){
+        if(is.null(input$sql_year1) || is.na(input$sql_year1) || input$sql_year1 == 1770){
                 year1_query <- ""
             } else {
                 year1_query <- input$sql_year1
             }
-        if(is.null(input$sql_year2) || is.na(input$sql_year2) || input$sql_year2 >= 2026){
+        if(is.null(input$sql_year2) || is.na(input$sql_year2) || input$sql_year2 == 2026){
                 year2_query <- ""
             } else {
                 year2_query <- input$sql_year2
@@ -234,8 +200,7 @@ server <- function(input, output, session) {
             year_query <- paste0(" year1 <= ", year2_query)
         } else {
             # 2 limits
-            year_query <- paste0(" (year1 <= ", max(year1_query , year2_query), 
-                                 " AND year2 >= ", min ( year2_query, year1_query), ") ")
+            year_query <- paste0(" (year1 <= ", year2_query, " OR year2 >= ", year1_query, ") ")
         }
         #     # if(is.null(input$sql_year2) || is.na(input$sql_year2)){
         #         year_query <- " "
@@ -347,11 +312,11 @@ server <- function(input, output, session) {
                 
             } else {
                 lat_query <- " "
-                lon_query <- " "
+                lat_query <- " "
             }
         }
         conditions <- c(conditions, lat_query)
-        conditions <- c(conditions, lon_query)
+        conditions <- c(conditions, lat_query)
         
         # region 
         {
